@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - manifests/adservice.yaml
+  - manifests/cartservice.yaml
+  - manifests/checkoutservice.yaml
+  - manifests/currencyservice.yaml
+  - manifests/emailservice.yaml
+  - manifests/frontend.yaml
+  - manifests/loadgenerator.yaml
+  - manifests/paymentservice.yaml
+  - manifests/productcatalogservice.yaml
+  - manifests/recommendationservice.yaml
+  - manifests/redis-cart.yaml
+  - manifests/shippingservice.yaml
