@@ -7,9 +7,12 @@ resources:
   - manifests/currencyservice.yaml
   - manifests/emailservice.yaml
   - manifests/frontend.yaml
-  - manifests/loadgenerator.yaml
   - manifests/paymentservice.yaml
   - manifests/productcatalogservice.yaml
   - manifests/recommendationservice.yaml
   - manifests/redis-cart.yaml
   - manifests/shippingservice.yaml
+patches:
+- path: patch.yaml
+  target:
+    kind: Deployment
