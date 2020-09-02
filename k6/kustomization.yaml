@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - job.yaml
+
+# disable suffix hash
+generatorOptions:
+ disableNameSuffixHash: true
+
+# configmap
+configMapGenerator:
+- name: k6-script
+  namespace: k6
+  files:
+    # configfile is used as key
+    - k6-script.js=script.js
