@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - namespace.yaml
+  # - namespace.yaml
   - job.yaml
 
 # disable suffix hash
@@ -10,8 +10,15 @@ generatorOptions:
 
 # configmap
 configMapGenerator:
-- name: k6-script
+- name: aws-credentials
   namespace: k6
+  envs:
+  - aws.env
+- name: k6-config
+  namespace: k6
+  literals:
+  - TITLE=cluster-com-istio-natural
   files:
     # configfile is used as key
     - k6-script.js=script.js
+    - metrics.json=metrics.json

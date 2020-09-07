@@ -1,8 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
 DELAY=$1
+EXCLUDE=$2
 
 if [ -z "$DELAY" ]; then
     echo 'Missing argument DELAY';
@@ -11,7 +12,16 @@ fi
 
 echo "# DELAY FOR ALL SERVICES: $DELAY"
 
-for i in $(kubectl get svc -o NAME | grep -v kubernetes); do
+CMD=(kubectl get svc -o NAME)
+CMD+=(\|)
+CMD+=(grep -v kubernetes)
+
+if [ -n "$EXCLUDE" ]; then
+    CMD+=(\|)
+    CMD+=(grep -v "$EXCLUDE")
+fi
+
+for i in $(eval "${CMD[@]}"); do
     echo
     echo '---'
     echo
