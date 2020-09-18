@@ -2,8 +2,9 @@ import http from 'k6/http';
 import { check } from 'k6';
 
 export let options = {
-    vus: 10,
-    duration: '10s',
+    rps: 50,
+    vus: 100,
+    duration: '30s'
 };
 
 const host = 'http://frontend.default.svc.cluster.local';
@@ -32,10 +33,10 @@ const headers = {
 export default function (data) {
 
     request(index, 1);
-    request(setCurrency, 2);
-    request(browseProduct, 10);
-    request(addToCart, 2);
-    request(viewCart, 3);
+    request(setCurrency, 1);
+    request(browseProduct, 5);
+    request(addToCart, 1);
+    request(viewCart, 1);
     request(checkout, 1);
 
 }

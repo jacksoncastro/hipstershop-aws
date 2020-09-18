@@ -16,3 +16,16 @@ patches:
 - path: patch.yaml
   target:
     kind: Deployment
+commonLabels:
+  group: app
+
+# # disable suffix hash
+# generatorOptions:
+#  disableNameSuffixHash: true
+
+# # configmap
+# configMapGenerator:
+# - name: hisptershop-config
+#   files:
+#     # configfile is used as key
+#     - GOOGLE_APPLICATION_CREDENTIALS=hipstershop.json
