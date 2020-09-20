@@ -58,6 +58,12 @@ deleteApp() {
     echo 'Deleted app.'
 }
 
+stabilization() {
+    echo 'Wait for stabilization'
+    sleep 20
+    echo 'Done!'
+}
+
 clean() {
     deleteTest;
     # deleteVirtualServices;
@@ -91,10 +97,6 @@ createApp() {
     sleep 1
     kubectl wait po -l group=app --for=condition=ready --timeout=120s
     echo 'Created'
-
-    echo 'Wait for stabilization'
-    sleep 20
-    echo 'Done!'
 }
 
 createAppWithLatency() {
@@ -113,8 +115,7 @@ createAppWithLatency() {
 
 speedup() {
 
-    DELAY='1s'
-    # DELAY=$1
+    DELAY=$1
     EXCLUDE=$2
 
     ./speedup.sh "$DELAY" "$EXCLUDE" | kubectl apply -f -
@@ -127,13 +128,19 @@ testAT() {
 
     createApp;
 
+    stabilization;
+
     runK6 'AT';
 }
 
 ### NT TEST ###
 testNT() {
 
+    clean;
+
     createAppWithLatency;
+
+    stabilization;
 
     runK6 'NT';
 
@@ -145,6 +152,8 @@ testDT() {
     createAppWithLatency;
 
     speedup "$SLEEP";
+
+    stabilization;
 
     runK6 'DT';
 }
