@@ -4,7 +4,8 @@ import { check } from 'k6';
 export let options = {
     rps: 50,
     vus: 100,
-    duration: '30s'
+    iterations: 100
+    // duration: '300s'
 };
 
 const host = 'http://frontend.default.svc.cluster.local';

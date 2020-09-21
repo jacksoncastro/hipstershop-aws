@@ -4,7 +4,9 @@
 set -e
 
 # TODO: parameter for this time
-SLEEP='1.0s';
+SLEEP='0.25s';
+EXTRA_LATENCY='0.5s';
+EXTRA_LATENCY_AND_SLEEP='0.75s';
 
 TIME=$(date '+%Y-%m-%d-%H-%M-%S');
 
@@ -23,10 +25,10 @@ setTitle() {
 
 init() {
     cd ..
+    testNT;
     testAT;
-    # testNT;
-    # testDT;
-    # testDTSi;
+    testDT;
+    testDTSi;
     clean;
 }
 
@@ -38,7 +40,7 @@ deleteTest() {
 
 deleteVirtualServices() {
     echo 'Deleting virtual services...'
-    ./speedup.sh '0s' | kubectl delete --ignore-not-found=true -f -
+    ./virtual-service.sh --delay=0s | kubectl delete --ignore-not-found=true -f -
     echo 'Deleted virtual services.'
 }
 
@@ -66,7 +68,7 @@ stabilization() {
 
 clean() {
     deleteTest;
-    # deleteVirtualServices;
+    deleteVirtualServices;
     deleteApp;
 }
 
@@ -99,26 +101,28 @@ createApp() {
     echo 'Created'
 }
 
-createAppWithLatency() {
+# createAppWithLatency() {
 
-    createApp;
+#     createApp;
 
-    echo "Set EXTRA_LATENCY to $SLEEP"
-    kubectl set env deploy productcatalogservice EXTRA_LATENCY="$SLEEP"
+#     echo "Set EXTRA_LATENCY to $SLEEP"
+#     kubectl set env deploy productcatalogservice EXTRA_LATENCY="$SLEEP"
 
-    echo 'Wait pod productcatalogservice...'
-    kubectl wait po -l app=productcatalogservice --for=condition=ready --timeout=120s
-    echo 'Done'
-}
+#     echo 'Wait pod productcatalogservice...'
+#     kubectl wait po -l app=productcatalogservice --for=condition=ready --timeout=120s
+#     echo 'Done'
+# }
 
-
-
-speedup() {
+virtualService() {
 
     DELAY=$1
     EXCLUDE=$2
 
-    ./speedup.sh "$DELAY" "$EXCLUDE" | kubectl apply -f -
+    if [ -n "$EXCLUDE" ]; then
+        ./virtual-service.sh --delay="$DELAY" --exclude="$EXCLUDE" | kubectl apply -f -
+    else
+        ./virtual-service.sh --delay="$DELAY" | kubectl apply -f -
+    fi
 }
 
 ### TEST AT ###
@@ -138,7 +142,10 @@ testNT() {
 
     clean;
 
-    createAppWithLatency;
+    # createAppWithLatency;
+    createApp;
+
+    ./virtual-service.sh --delay="$EXTRA_LATENCY" --only='productcatalogservice' | kubectl apply -f -
 
     stabilization;
 
@@ -149,9 +156,13 @@ testNT() {
 ### DT TEST ###
 testDT() {
 
-    createAppWithLatency;
+    clean;
 
-    speedup "$SLEEP";
+    # createAppWithLatency;
+    createApp;
+
+    virtualService "$SLEEP";
+    ./virtual-service.sh --delay="$EXTRA_LATENCY_AND_SLEEP" --only='productcatalogservice' | kubectl apply -f -
 
     stabilization;
 
@@ -161,9 +172,13 @@ testDT() {
 ### DT(Si) TEST ###
 testDTSi() {
 
-    createAppWithLatency;
+    clean;
 
-    speedup "$SLEEP" 'productcatalogservice';
+    # createAppWithLatency;
+    createApp;
+
+    virtualService "$SLEEP" 'productcatalogservice';
+    ./virtual-service.sh --delay="$EXTRA_LATENCY" --only='productcatalogservice' | kubectl apply -f -
 
     runK6 'DTSi';
 }

@@ -16,8 +16,8 @@ configMapGenerator:
   - aws.env
 - name: k6-config
   namespace: k6
-  # literals:
-  # - TITLE=cluster-with-istio-natural
+  literals:
+  - NUMBER_EXECUTIONS=2
   envs:
   - k6-config.env
   files:

@@ -4,7 +4,15 @@
         "query": "rate(istio_request_duration_milliseconds_sum{reporter=\"destination\",destination_app=\"checkoutservice\",response_code=\"200\"}[3m]) / rate(istio_request_duration_milliseconds_count{reporter=\"destination\",destination_app=\"checkoutservice\",response_code=\"200\"}[3m])"
     },
     {
-        "name": "avg",
+        "name": "avg-2m",
         "query": "avg by (source_app,destination_app) ( ( rate(istio_request_duration_milliseconds_sum{reporter=\"source\",response_code=\"200\",destination_app!=\"unknown\"}[2m]) / rate(istio_request_duration_milliseconds_count{reporter=\"source\",response_code=\"200\",destination_app!=\"unknown\"}[2m]) ) > 0 )"
+    },
+    {
+        "name": "avg-3m",
+        "query": "avg by (source_app,destination_app) ( ( rate(istio_request_duration_milliseconds_sum{reporter=\"source\",response_code=\"200\",destination_app!=\"unknown\"}[3m]) / rate(istio_request_duration_milliseconds_count{reporter=\"source\",response_code=\"200\",destination_app!=\"unknown\"}[3m]) ) > 0 )"
+    },
+    {
+        "name": "avg-4m",
+        "query": "avg by (source_app,destination_app) ( ( rate(istio_request_duration_milliseconds_sum{reporter=\"source\",response_code=\"200\",destination_app!=\"unknown\"}[4m]) / rate(istio_request_duration_milliseconds_count{reporter=\"source\",response_code=\"200\",destination_app!=\"unknown\"}[4m]) ) > 0 )"
     }
 ]

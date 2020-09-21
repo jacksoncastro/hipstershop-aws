@@ -34,6 +34,11 @@ spec:
               configMapKeyRef:
                 name: k6-config
                 key: TITLE
+          - name: NUMBER_EXECUTIONS
+            valueFrom:
+              configMapKeyRef:
+                name: k6-config
+                key: NUMBER_EXECUTIONS
       restartPolicy: Never
       volumes:
       - name: k6-config
