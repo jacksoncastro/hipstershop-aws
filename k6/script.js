@@ -1,12 +1,17 @@
 import http from 'k6/http';
 import { check } from 'k6';
+// import { Counter } from 'k6/metrics';
 
 export let options = {
-    rps: 50,
+    rps: 40,
+    // vus: 100,
+    // iterations: 500,
     vus: 100,
-    iterations: 100
-    // duration: '300s'
+    iterations: 100,
+    duration: '20m'
 };
+
+// let setCurrencyCount = new Counter('setCurrencyCount');
 
 const host = 'http://frontend.default.svc.cluster.local';
 const currencies = ['EUR', 'USD', 'JPY', 'CAD'];
@@ -47,7 +52,7 @@ function random(array) {
 }
 
 function request(requestFunction, weight) {
-    for (let i=0; i <= weight; i++) {
+    for (let i=0; i < weight; i++) {
         requestFunction();
     }
 }
@@ -65,6 +70,7 @@ function setCurrency() {
         currency_code: currency
     };
     const response = http.post(host + '/setCurrency', data, headers);
+    // setCurrencyCount.add(1);
 
     check(response, {
         'setCurrency': success

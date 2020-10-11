@@ -3,12 +3,16 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
-# TODO: parameter for this time
-SLEEP='0.25s';
-EXTRA_LATENCY='0.5s';
-EXTRA_LATENCY_AND_SLEEP='0.75s';
+# in seconds
+EXTRA_LATENCY='0.2s'
+PERFORMANCE_GAIN='0.1s'
+
+UNITY=$(echo "$EXTRA_LATENCY" | grep -i -E -o '(ms|s)$')
+SUM_EXTRA_GAIN=$(echo $EXTRA_LATENCY $PERFORMANCE_GAIN "$UNITY" | awk '{sum_var=($1 + $2); print sum_var $3}')
+SUB_EXTRA_GAIN=$(echo $EXTRA_LATENCY $PERFORMANCE_GAIN "$UNITY" | awk '{sub_var=($1 - $2); print sub_var $3}')
 
 TIME=$(date '+%Y-%m-%d-%H-%M-%S');
+ITERATIONS=5
 
 trap ctrl_c INT
 
@@ -20,15 +24,20 @@ ctrl_c() {
 
 setTitle() {
     NAME=$1
-    TITLE="$TIME/$NAME" envsubst < k6/k6-config.env.example > k6/k6-config.env
+    ITERATION=$2
+    TITLE="$TIME/$NAME" ITERATION="$ITERATION" envsubst < k6/k6-config.env.example > k6/k6-config.env
 }
 
 init() {
     cd ..
-    testNT;
-    testAT;
-    testDT;
-    testDTSi;
+    for i in $(seq 1 $ITERATIONS); do
+        echo "Begin iteration number $i";
+        testNT "$i";
+        testAT "$i";
+        testDT "$i";
+        testDTSi "$i";
+        echo "Ending iteration number $i";
+    done
     clean;
 }
 
@@ -54,7 +63,7 @@ deleteApp() {
     POD=$(kubectl get po -l group=app -o NAME)
     if [ -n "$POD" ]; then
         echo 'Wait delete...'
-        kubectl wait po -l group=app --for=delete --timeout=120s
+        kubectl wait po -l group=app --for=delete --timeout=1800s
     fi
 
     echo 'Deleted app.'
@@ -75,8 +84,9 @@ clean() {
 runK6() {
 
     NAME=$1
+    ITERATION=$2
 
-    setTitle "$NAME"
+    setTitle "$NAME" "$ITERATION"
 
     echo "Creating teste k6 - $NAME"
     kustomize build k6/ | kubectl apply -f -
@@ -97,7 +107,7 @@ createApp() {
 
     echo 'Wait create...'
     sleep 1
-    kubectl wait po -l group=app --for=condition=ready --timeout=120s
+    kubectl wait po -l group=app --for=condition=ready --timeout=1800s
     echo 'Created'
 }
 
@@ -125,62 +135,80 @@ virtualService() {
     fi
 }
 
-### TEST AT ###
-testAT() {
+virtualServiceOnly() {
 
-    clean;
+    DELAY=$1
+    ONLY=$2
 
-    createApp;
-
-    stabilization;
-
-    runK6 'AT';
+    ./virtual-service.sh --delay="$DELAY" --only="$ONLY" | kubectl apply -f -
 }
 
 ### NT TEST ###
 testNT() {
 
+    ITERATION=$1
+
     clean;
 
     # createAppWithLatency;
     createApp;
 
-    ./virtual-service.sh --delay="$EXTRA_LATENCY" --only='productcatalogservice' | kubectl apply -f -
+    virtualServiceOnly "$EXTRA_LATENCY" 'productcatalogservice';
 
     stabilization;
 
-    runK6 'NT';
+    runK6 'NT' "$ITERATION";
 
+}
+
+### TEST AT ###
+testAT() {
+
+    ITERATION=$1
+
+    clean;
+
+    createApp;
+
+    virtualServiceOnly "$SUB_EXTRA_GAIN" 'productcatalogservice';
+
+    stabilization;
+
+    runK6 'AT' "$ITERATION";
 }
 
 ### DT TEST ###
 testDT() {
 
+    ITERATION=$1
+
     clean;
 
     # createAppWithLatency;
     createApp;
 
-    virtualService "$SLEEP";
-    ./virtual-service.sh --delay="$EXTRA_LATENCY_AND_SLEEP" --only='productcatalogservice' | kubectl apply -f -
+    virtualService "$PERFORMANCE_GAIN";
+    virtualServiceOnly "$SUM_EXTRA_GAIN" 'productcatalogservice'
 
     stabilization;
 
-    runK6 'DT';
+    runK6 'DT' "$ITERATION";
 }
 
 ### DT(Si) TEST ###
 testDTSi() {
 
+    ITERATION=$1
+
     clean;
 
     # createAppWithLatency;
     createApp;
 
-    virtualService "$SLEEP" 'productcatalogservice';
-    ./virtual-service.sh --delay="$EXTRA_LATENCY" --only='productcatalogservice' | kubectl apply -f -
+    virtualService "$PERFORMANCE_GAIN" 'productcatalogservice';
+    virtualServiceOnly "$EXTRA_LATENCY" 'productcatalogservice'
 
-    runK6 'DTSi';
+    runK6 'DTSi' "$ITERATION";
 }
 
 init;
