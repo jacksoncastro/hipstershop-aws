@@ -1,17 +1,19 @@
 import http from 'k6/http';
 import { check } from 'k6';
-// import { Counter } from 'k6/metrics';
+import { Trend, Counter } from 'k6/metrics';
 
 export let options = {
-    rps: 40,
+    rps: 64,
     // vus: 100,
     // iterations: 500,
-    vus: 100,
-    iterations: 100,
+    vus: 200,
+    iterations:800,
     duration: '20m'
 };
 
-// let setCurrencyCount = new Counter('setCurrencyCount');
+let sessionDuration = new Trend('session_duration');
+let sessionWaiting = new Trend('session_waiting');
+let sessionCount = new Counter('session_count');
 
 const host = 'http://frontend.default.svc.cluster.local';
 const currencies = ['EUR', 'USD', 'JPY', 'CAD'];
@@ -36,14 +38,28 @@ const headers = {
     }
 };
 
+function addSessionData(session, response) {
+    if (success(response)) {
+        session.duration += response.timings.duration;
+        session.waiting += response.timings.waiting;
+    }
+}
+
 export default function (data) {
 
-    request(index, 1);
-    request(setCurrency, 1);
-    request(browseProduct, 5);
-    request(addToCart, 1);
-    request(viewCart, 1);
-    request(checkout, 1);
+    const session = {
+        waiting: 0,
+        duration: 0
+    };
+
+    request(index, 1, session);
+    request(setCurrency, 1, session);
+    request(browseProduct, 5, session);
+    request(addToCart, 1, session);
+    request(viewCart, 1, session);
+    request(checkout, 1, session);
+
+    endSession(session);
 
 }
 
@@ -51,45 +67,60 @@ function random(array) {
     return array[Math.floor(Math.random() * array.length)];
 }
 
-function request(requestFunction, weight) {
+function request(requestFunction, weight, session) {
     for (let i=0; i < weight; i++) {
-        requestFunction();
+        requestFunction(session);
     }
 }
 
-function index() {
+function endSession(session) {
+    sessionDuration.add(session.duration);
+    sessionWaiting.add(session.waiting);
+    sessionCount.add(1);
+}
+
+function index(session) {
+
     let response = http.get(host + '/');
+
+    addSessionData(session, response);
+
     check(response, {
         'index': success
     });
 }
 
-function setCurrency() {
+function setCurrency(session) {
     const currency = random(currencies);
     const data = {
         currency_code: currency
     };
     const response = http.post(host + '/setCurrency', data, headers);
-    // setCurrencyCount.add(1);
+
+    addSessionData(session, response);
 
     check(response, {
         'setCurrency': success
     });
 }
 
-function browseProduct() {
+function browseProduct(session) {
     const product = random(products);
     let response = http.get(host + '/product/' + product);
+
+    addSessionData(session, response);
 
     check(response, {
         'browseProduct': success
     });
 }
 
-function addToCart() {
+function addToCart(session) {
     // browseProduct
     const product = random(products);
     let responseBrowse = http.get(host + '/product/' + product);
+
+    addSessionData(session, responseBrowse);
 
     check(responseBrowse, {
         'browseProduct': success
@@ -103,20 +134,25 @@ function addToCart() {
     };
     const responseAdd = http.post(host + '/cart', data, headers);
 
+    addSessionData(session, responseAdd);
+
     check(responseAdd, {
         'addToCart': success
     });
 }
 
-function viewCart() {
+function viewCart(session) {
     let response = http.get(host + '/cart');
+
+    addSessionData(session, response);
+
     check(response, {
         'viewCart': success
     });
 }
 
-function checkout() {
-    addToCart();
+function checkout(session) {
+    addToCart(session);
     const data = {
         'email': 'someone@example.com',
         'street_address': '1600 Amphitheatre Parkway',
@@ -131,6 +167,8 @@ function checkout() {
     };
 
     const response = http.post(host + '/cart/checkout', data, headers);
+
+    addSessionData(session, response);
 
     check(response, {
         'checkout': success
